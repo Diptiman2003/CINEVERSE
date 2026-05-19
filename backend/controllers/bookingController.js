@@ -1,6 +1,3 @@
-
-// this is main file
-// again claude ai
 import mongoose from "mongoose";
 import Booking from "../models/bookingModel.js";
 import Movie from "../models/movieModel.js";

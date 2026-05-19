@@ -2,7 +2,7 @@
 import mongoose from "mongoose";
 
 export const connectDB = async () => {
-    await mongoose.connect('mongodb+srv://sarcardiptiman03_db_user:Moviebook123@cluster0.vbqujpn.mongodb.net/MovieBookSystem')
+    await mongoose.connect(process.env.MONGO_URI)
 .then(() => {
     console.log("Connected to MongoDB");
 })
@@ -11,4 +11,3 @@ export const connectDB = async () => {
 });
 }
 
-// mongodb+srv://sarcardiptiman03_db_user:Moviebook123@cluster0.vbqujpn.mongodb.net/MovieBookSystem?appName=Cluster0

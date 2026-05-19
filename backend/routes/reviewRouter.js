@@ -1,12 +1,9 @@
-//Made by claud AI
 import express from "express";
 import Review from "../models/reviewModel.js";
 import authMiddleware from "../middlewares/auth.js";
  
 const reviewRouter = express.Router();
  
-// ─── GET all reviews for a movie ───────────────────────────────────────────
-// GET /api/reviews/:movieId
 reviewRouter.get("/:movieId", async (req, res) => {
   try {
     const reviews = await Review.find({ movieId: req.params.movieId })
