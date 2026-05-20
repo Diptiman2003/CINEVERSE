@@ -153,7 +153,8 @@ export const createMovie = async (req, res) => {
 
     const categories = safeParseJSON(body.categories) || (body.categories ? String(body.categories).split(",").map(s => s.trim()).filter(Boolean) : []);
     const slots      = safeParseJSON(body.slots) || [];
-    const seatPrices = safeParseJSON(body.seatPrices) || { standard: Number(body.standard || 0), recliner: Number(body.recliner || 0) };
+     const mrpSeatPrices  = safeParseJSON(body.mrpSeatPrices)  || { standard: Number(body.mrpStandard || 0), recliner: Number(body.mrpRecliner || 0) };
+    const discountBanner = safeParseJSON(body.discountBanner) || {};
     const cast       = safeParseJSON(body.cast) || [];
     const directors  = safeParseJSON(body.directors) || [];
     const producers  = safeParseJSON(body.producers) || [];
@@ -227,7 +228,8 @@ export const createMovie = async (req, res) => {
       rating:   Number(body.rating)   || 0,
       duration: Number(body.duration) || 0,
       slots,
-      seatPrices,
+      mrpSeatPrices,
+      discountBanner,
       cast,
       directors,
       producers,
@@ -338,3 +340,5 @@ export async function deleteMovie(req, res) {
 }
 
 export default { createMovie, getMovies, getMovieById, deleteMovie };
+
+

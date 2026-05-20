@@ -72,9 +72,9 @@ const sameMinute = (a, b) => {
 
 /* component */
 export default function SeatSelectorPage() {
-  const { id, slot, showtime } = useParams();
+  const { id, slot } = useParams();
   const movieIdParam = id;
-  const slotKey = decodeURIComponent(slot || showtime || "");
+  const slotKey = slot ? decodeURIComponent(slot) : "";
   const navigate = useNavigate();
 
   const [movie, setMovie] = useState(null);
@@ -392,7 +392,16 @@ export default function SeatSelectorPage() {
     });
   };
   const clearSelection = () => setSelected(new Set());
-  const basePrice = movie?.seatPrices?.standard ?? movie?.price ?? 0;
+  const basePrice        = movie?.seatPrices?.standard    ?? movie?.price ?? 0;
+  const reclinerPrice    = movie?.seatPrices?.recliner    ?? reclinerPrice;
+  const mrpStandard      = movie?.mrpSeatPrices?.standard ?? 0;
+  const mrpRecliner      = movie?.mrpSeatPrices?.recliner ?? 0;
+
+  // Discount % helpers (returns null when there's nothing to show)
+  const discountPct = (mrp, price) =>
+    mrp > 0 && price > 0 && mrp > price
+      ? Math.round(((mrp - price) / mrp) * 100)
+      : null;
 
   const confirmBooking = async () => {
     if (selected.size === 0) {
@@ -416,7 +425,7 @@ export default function SeatSelectorPage() {
       const row = String(sid).charAt(0).toUpperCase();
       const type = ["D", "E"].includes(row) ? "recliner" : "standard";
       const price =
-        type === "recliner" ? Math.round(basePrice * 1.5) : basePrice;
+        type === "recliner" ? reclinerPrice : basePrice;
       return { seatId: sid, type, price };
     });
 
@@ -510,8 +519,9 @@ export default function SeatSelectorPage() {
   const total = [...selected].reduce((sum, s) => {
     const rowLetter = s[0];
     const def = ROWS.find((r) => r.id === rowLetter);
-    const multiplier = def?.type === "recliner" ? 1.5 : 1;
-    return sum + basePrice * multiplier;
+    
+    const seatPrice = def?.type === "recliner" ? reclinerPrice : basePrice;
+    return sum + seatPrice;
   }, 0);
   const selectedCount = selected.size;
 
@@ -662,7 +672,7 @@ export default function SeatSelectorPage() {
 
                         const priceTitle = `₹${
                           row.type === "recliner"
-                            ? Math.round(basePrice * 1.5)
+                            ? reclinerPrice
                             : basePrice
                         }`;
                         return (
@@ -804,26 +814,58 @@ export default function SeatSelectorPage() {
                 <CreditCard size={18} /> Pricing Info
               </h3>
               <div className="space-y-3">
+
+                {/* ── Standard Seat ── */}
                 <div className={seatSelectorHStyles.pricingItem}>
                   <div className={seatSelectorHStyles.pricingRow}>
-                    <div className={seatSelectorHStyles.pricingLabel}>
-                      Standard
-                    </div>
-                    <div className={seatSelectorHStyles.pricingValueStandard}>
-                      ₹{basePrice}
+                    <div className={seatSelectorHStyles.pricingLabel}>Standard</div>
+                    <div className="flex flex-col items-end gap-0.5">
+                      {/* MRP (strikethrough) */}
+                      {discountPct(mrpStandard, basePrice) && (
+                        <span className="text-xs text-gray-400 line-through">
+                          ₹{mrpStandard}
+                        </span>
+                      )}
+                      {/* Actual price */}
+                      <div className="flex items-center gap-1.5">
+                        <div className={seatSelectorHStyles.pricingValueStandard}>
+                          ₹{basePrice}
+                        </div>
+                        {/* Discount badge */}
+                        {discountPct(mrpStandard, basePrice) && (
+                          <span className="text-xs font-bold bg-green-500 text-white px-1.5 py-0.5 rounded-full">
+                            -{discountPct(mrpStandard, basePrice)}%
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
+
+                {/* ── Recliner Seat ── */}
                 <div className={seatSelectorHStyles.pricingItem}>
                   <div className={seatSelectorHStyles.pricingRow}>
-                    <div className={seatSelectorHStyles.pricingLabel}>
-                      Recliner
-                    </div>
-                    <div className={seatSelectorHStyles.pricingValueRecliner}>
-                      ₹{Math.round(basePrice * 1.5)}
+                    <div className={seatSelectorHStyles.pricingLabel}>Recliner</div>
+                    <div className="flex flex-col items-end gap-0.5">
+                      {discountPct(mrpRecliner, reclinerPrice) && (
+                        <span className="text-xs text-gray-400 line-through">
+                          ₹{mrpRecliner}
+                        </span>
+                      )}
+                      <div className="flex items-center gap-1.5">
+                        <div className={seatSelectorHStyles.pricingValueRecliner}>
+                          ₹{reclinerPrice}
+                        </div>
+                        {discountPct(mrpRecliner, reclinerPrice) && (
+                          <span className="text-xs font-bold bg-green-500 text-white px-1.5 py-0.5 rounded-full">
+                            -{discountPct(mrpRecliner, reclinerPrice)}%
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
+
                 <div className={seatSelectorHStyles.pricingNote}>
                   All prices include taxes. No hidden charges.
                 </div>

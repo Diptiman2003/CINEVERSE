@@ -28,6 +28,19 @@ const AddPage = () => {
   const [standardSeatPrice, setStandardSeatPrice] = useState(0);
   const [reclinerSeatPrice, setReclinerSeatPrice] = useState(0);
 
+  // ── MRP (original price before discount) ──────────────────────────────────
+  const [mrpStandardPrice, setMrpStandardPrice] = useState(0);
+  const [mrpReclinerPrice, setMrpReclinerPrice]  = useState(0);
+
+  // ── Festival / Discount Banner ─────────────────────────────────────────────
+  const [bannerEnabled,   setBannerEnabled]   = useState(false);
+  const [bannerTitle,     setBannerTitle]     = useState("");
+  const [bannerSubtitle,  setBannerSubtitle]  = useState("");
+  const [bannerBgColor,   setBannerBgColor]   = useState("#FF6B00");
+  const [bannerTextColor, setBannerTextColor] = useState("#FFFFFF");
+  const [bannerBadge,     setBannerBadge]     = useState("");
+  const [bannerExpiry,    setBannerExpiry]    = useState("");
+
 
   //latresttrailer
   const [ltDurationHours, setLtDurationHours] = useState(1);
@@ -265,15 +278,6 @@ const AddPage = () => {
       if (!finalAuditorium) return "Please select auditorium.";
     }
 
-    if (movieType === "normal" || movieType === "featured" || movieType === "releaseSoon") {
-      const invalidSlot = slots.find(
-        (slot) =>
-          !slot || !slot.date || !slot.time || !String(slot.time).trim()
-      );
-      if (invalidSlot)
-        return "Please add at least one valid slot with date, time, and AM/PM.";
-    }
-
     if (movieType === "normal" || movieType === "featured") {
       const badCast = castImages.find((c) => {
         if (!c) return false;
@@ -309,9 +313,9 @@ const AddPage = () => {
     if (error) return toast.error(error);
 
     setIsUploading(true);
-    const form = new FormData();
+    const formData = new FormData();
 
-    form.append("type", movieType);
+    formData.append("type", movieType);
 
     //if the movietype === latesttrailers then it willcreate a latesttrailersOBJ
     if (movieType === "latestTrailers") {
@@ -341,29 +345,48 @@ const AddPage = () => {
         })),
       };
 
-      form.append("movieName", movieName);
-      form.append("latestTrailer", JSON.stringify(latestTrailerObj));
+      formData.append("movieName", movieName);
+      formData.append("latestTrailer", JSON.stringify(latestTrailerObj));
 
-      if (ltThumbnail) form.append("ltThumbnail", ltThumbnail);
+      if (ltThumbnail) formData.append("ltThumbnail", ltThumbnail);
 
-      appendFilesToForm(form, "ltDirectorFiles", ltDirectorImages);
-      appendFilesToForm(form, "ltProducerFiles", ltProducerImages);
-      appendFilesToForm(form, "ltSingerFiles", ltSingerImages);
+      appendFilesToForm(formData, "ltDirectorFiles", ltDirectorImages);
+      appendFilesToForm(formData, "ltProducerFiles", ltProducerImages);
+      appendFilesToForm(formData, "ltSingerFiles", ltSingerImages);
     } else {
       // normal / featured / releaseSoon
-      form.append("movieName", movieName);
-      form.append("categories", JSON.stringify(categories));
-      if (poster) form.append("poster", poster);
-      form.append("trailerUrl", trailerUrl || "");
-      form.append("videoUrl", videoUrl || "");
-      form.append("rating", String(rating));
-      form.append("duration", String(duration));
-      form.append("slots", JSON.stringify(slots));
-      form.append(
+      formData.append("movieName", movieName);
+      formData.append("categories", JSON.stringify(categories));
+      if (poster) formData.append("poster", poster);
+      formData.append("trailerUrl", trailerUrl || "");
+      formData.append("videoUrl", videoUrl || "");
+      formData.append("rating", String(rating));
+      formData.append("duration", String(duration));
+      formData.append("slots", JSON.stringify(slots));
+      formData.append(
         "seatPrices",
         JSON.stringify({
           standard: Number(standardSeatPrice),
           recliner: Number(reclinerSeatPrice),
+        })
+      );
+      formData.append(
+        "mrpSeatPrices",
+        JSON.stringify({
+          standard: Number(mrpStandardPrice) || 0,
+          recliner: Number(mrpReclinerPrice)  || 0,
+        })
+      );
+      formData.append(
+        "discountBanner",
+        JSON.stringify({
+          enabled:   bannerEnabled,
+          title:     bannerTitle,
+          subtitle:  bannerSubtitle,
+          bgColor:   bannerBgColor,
+          textColor: bannerTextColor,
+          badgeText: bannerBadge,
+          expiresAt: bannerExpiry || null,
         })
       );
 
@@ -371,9 +394,9 @@ const AddPage = () => {
         auditorium === "Other"
           ? customAuditorium.trim() || "Audi 1"
           : auditorium;
-      form.append("auditorium", finalAuditorium);
+      formData.append("auditorium", finalAuditorium);
 
-      form.append(
+      formData.append(
         "cast",
         JSON.stringify(
           castImages.map((c) => ({
@@ -383,7 +406,7 @@ const AddPage = () => {
           }))
         )
       );
-      form.append(
+      formData.append(
         "directors",
         JSON.stringify(
           directorImages.map((d) => ({
@@ -392,7 +415,7 @@ const AddPage = () => {
           }))
         )
       );
-      form.append(
+      formData.append(
         "producers",
         JSON.stringify(
           producerImages.map((p) => ({
@@ -401,15 +424,15 @@ const AddPage = () => {
           }))
         )
       );
-      form.append("story", story || "");
+      formData.append("story", story || "");
 
-      appendFilesToForm(form, "castFiles", castImages);
-      appendFilesToForm(form, "directorFiles", directorImages);
-      appendFilesToForm(form, "producerFiles", producerImages);
+      appendFilesToForm(formData, "castFiles", castImages);
+      appendFilesToForm(formData, "directorFiles", directorImages);
+      appendFilesToForm(formData, "producerFiles", producerImages);
     }
 
     try {
-      const resp = await axios.post(`${API_HOST}/api/movies`, form, {
+      const resp = await axios.post(`${API_HOST}/api/movies`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       if (resp?.data?.sucess) {
@@ -750,10 +773,12 @@ const AddPage = () => {
                   </div>
 
                   {(movieType === "normal" || movieType === "featured") && (
+                    <>
+                    {/* ── Selling Price + MRP grid ─────────────────────────── */}
                     <div className={addMoviePageStyles.gridCols3}>
                       <div>
                         <label className={addMoviePageStyles.label}>
-                          Standard Seat Price (required)
+                          Standard Seat Price — Selling Price (required)
                         </label>
                         <input
                           type="number"
@@ -767,7 +792,21 @@ const AddPage = () => {
                       </div>
                       <div>
                         <label className={addMoviePageStyles.label}>
-                          Recliner Seat Price (required)
+                          Standard Seat MRP (optional — shown as strikethrough)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={mrpStandardPrice}
+                          onChange={(e) => setMrpStandardPrice(e.target.value)}
+                          placeholder="e.g. 200.00"
+                          className={addMoviePageStyles.input}
+                        />
+                      </div>
+                      <div>
+                        <label className={addMoviePageStyles.label}>
+                          Recliner Seat Price — Selling Price (required)
                         </label>
                         <input
                           type="number"
@@ -776,6 +815,22 @@ const AddPage = () => {
                           value={reclinerSeatPrice}
                           onChange={(e) => setReclinerSeatPrice(e.target.value)}
                           placeholder="e.g. 250.00"
+                          className={addMoviePageStyles.input}
+                        />
+                      </div>
+                    </div>
+                    <div className={addMoviePageStyles.gridCols3}>
+                      <div>
+                        <label className={addMoviePageStyles.label}>
+                          Recliner Seat MRP (optional — shown as strikethrough)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={mrpReclinerPrice}
+                          onChange={(e) => setMrpReclinerPrice(e.target.value)}
+                          placeholder="e.g. 350.00"
                           className={addMoviePageStyles.input}
                         />
                       </div>
@@ -796,6 +851,117 @@ const AddPage = () => {
                         </select>
                       </div>
                     </div>
+
+                    {/* ── Festival / Discount Banner Section ───────────────── */}
+                    <div style={{ border: "1px solid #374151", borderRadius: "12px", padding: "20px", marginTop: "16px", background: "#111827" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
+                        <span style={{ fontSize: "18px", fontWeight: "700", color: "#f9fafb" }}>🎉 Festival / Discount Banner</span>
+                        <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", marginLeft: "auto" }}>
+                          <input
+                            type="checkbox"
+                            checked={bannerEnabled}
+                            onChange={(e) => setBannerEnabled(e.target.checked)}
+                            style={{ width: "18px", height: "18px", accentColor: "#f97316" }}
+                          />
+                          <span style={{ color: "#d1d5db", fontSize: "14px" }}>Enable Banner</span>
+                        </label>
+                      </div>
+                      {bannerEnabled && (
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                          <div>
+                            <label className={addMoviePageStyles.label}>Banner Title (e.g. "Diwali Offer 🎆")</label>
+                            <input
+                              type="text"
+                              value={bannerTitle}
+                              onChange={(e) => setBannerTitle(e.target.value)}
+                              placeholder="Diwali Offer 🎆"
+                              className={addMoviePageStyles.input}
+                            />
+                          </div>
+                          <div>
+                            <label className={addMoviePageStyles.label}>Subtitle (e.g. "Flat 20% off on all bookings")</label>
+                            <input
+                              type="text"
+                              value={bannerSubtitle}
+                              onChange={(e) => setBannerSubtitle(e.target.value)}
+                              placeholder="Flat 20% off on all bookings"
+                              className={addMoviePageStyles.input}
+                            />
+                          </div>
+                          <div>
+                            <label className={addMoviePageStyles.label}>Badge Text (e.g. "LIMITED TIME")</label>
+                            <input
+                              type="text"
+                              value={bannerBadge}
+                              onChange={(e) => setBannerBadge(e.target.value)}
+                              placeholder="LIMITED TIME"
+                              className={addMoviePageStyles.input}
+                            />
+                          </div>
+                          <div>
+                            <label className={addMoviePageStyles.label}>Expires At (optional)</label>
+                            <input
+                              type="datetime-local"
+                              value={bannerExpiry}
+                              onChange={(e) => setBannerExpiry(e.target.value)}
+                              className={addMoviePageStyles.input}
+                            />
+                          </div>
+                          <div>
+                            <label className={addMoviePageStyles.label}>Background Color</label>
+                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                              <input
+                                type="color"
+                                value={bannerBgColor}
+                                onChange={(e) => setBannerBgColor(e.target.value)}
+                                style={{ width: "44px", height: "36px", border: "none", borderRadius: "6px", cursor: "pointer", padding: "2px" }}
+                              />
+                              <input
+                                type="text"
+                                value={bannerBgColor}
+                                onChange={(e) => setBannerBgColor(e.target.value)}
+                                placeholder="#FF6B00"
+                                className={addMoviePageStyles.input}
+                                style={{ flex: 1 }}
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className={addMoviePageStyles.label}>Text Color</label>
+                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                              <input
+                                type="color"
+                                value={bannerTextColor}
+                                onChange={(e) => setBannerTextColor(e.target.value)}
+                                style={{ width: "44px", height: "36px", border: "none", borderRadius: "6px", cursor: "pointer", padding: "2px" }}
+                              />
+                              <input
+                                type="text"
+                                value={bannerTextColor}
+                                onChange={(e) => setBannerTextColor(e.target.value)}
+                                placeholder="#FFFFFF"
+                                className={addMoviePageStyles.input}
+                                style={{ flex: 1 }}
+                              />
+                            </div>
+                          </div>
+                          {/* Live Preview */}
+                          <div style={{ gridColumn: "1 / -1" }}>
+                            <label className={addMoviePageStyles.label}>Preview</label>
+                            <div style={{ backgroundColor: bannerBgColor, color: bannerTextColor, padding: "10px 18px", borderRadius: "8px", display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                              {bannerBadge && (
+                                <span style={{ backgroundColor: bannerTextColor, color: bannerBgColor, fontSize: "11px", fontWeight: "700", padding: "2px 8px", borderRadius: "999px", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                                  {bannerBadge}
+                                </span>
+                              )}
+                              <span style={{ fontWeight: "700", fontSize: "14px" }}>{bannerTitle || "Banner Title"}</span>
+                              {bannerSubtitle && <span style={{ fontSize: "13px", opacity: 0.9 }}>— {bannerSubtitle}</span>}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    </>
                   )}
 
                   {movieType !== "releaseSoon" && (

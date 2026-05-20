@@ -303,7 +303,7 @@ const Movies = () => {
 
             return (
               <article key={movieId} className={moviesStyles.movieArticle}>
-                <Link to={`/movie/${movieId}`} className={moviesStyles.movieLink}>
+                <Link to={`/movies/${movieId}`} className={moviesStyles.movieLink}>
                   <img
                     src={imgSrc}
                     alt={title}

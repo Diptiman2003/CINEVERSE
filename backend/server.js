@@ -9,6 +9,7 @@ import { connectDB } from './config/db.js';
 import movieRouter from './routes/movieRouter.js';
 import bookingRouter from './routes/bookingRouter.js';
 import reviewRouter from './routes/reviewRouter.js';
+import bannerRouter from './routes/festivalBannerRouter.js';
 // import theatreRouter from './routes/theatreRouter.js';
 
 const app = express();
@@ -29,6 +30,7 @@ app.use('/api/movies', movieRouter);
 app.use('/api/bookings', bookingRouter);
 app.use('/api/reviews', reviewRouter);
 // app.use('/api/theatres', theatreRouter);
+app.use('/api/banners', bannerRouter); 
 
 app.get('/', (req, res) => {
   res.send('API is running...');
